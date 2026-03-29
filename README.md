@@ -11,9 +11,6 @@ A lightweight macOS clipboard history manager that lives in the menu bar. Browse
 1. Double-click `ClipMan.app` to launch it
 2. A clipboard icon appears in the menu bar
 
-Since ClipMan is unsigned, macOS may block it on first launch. If this happens:
-- Right-click `ClipMan.app` and choose **Open**, then click **Open** again in the dialog
-- Or go to **System Settings → Privacy & Security** and click **Open Anyway**
 
 ## How It Works
 
