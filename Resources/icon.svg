@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90D9"/>
+      <stop offset="100%" style="stop-color:#2C5F8A"/>
+    </linearGradient>
+    <linearGradient id="clip" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#C0C0C0"/>
+      <stop offset="100%" style="stop-color:#909090"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF"/>
+      <stop offset="100%" style="stop-color:#F0F0F0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="220" ry="220" fill="url(#bg)"/>
+
+  <!-- Clipboard body -->
+  <rect x="260" y="240" width="504" height="600" rx="30" ry="30" fill="url(#paper)" stroke="#D0D0D0" stroke-width="4"/>
+
+  <!-- Clipboard clip (top) -->
+  <rect x="370" y="180" width="284" height="120" rx="16" ry="16" fill="url(#clip)" stroke="#808080" stroke-width="4"/>
+  <rect x="420" y="160" width="184" height="60" rx="30" ry="30" fill="url(#bg)" stroke="#808080" stroke-width="4"/>
+
+  <!-- Text lines on clipboard -->
+  <rect x="320" y="360" width="384" height="24" rx="12" fill="#4A90D9" opacity="0.7"/>
+  <rect x="320" y="410" width="320" height="24" rx="12" fill="#4A90D9" opacity="0.5"/>
+  <rect x="320" y="460" width="360" height="24" rx="12" fill="#4A90D9" opacity="0.4"/>
+  <rect x="320" y="510" width="280" height="24" rx="12" fill="#4A90D9" opacity="0.3"/>
+
+  <!-- Checkmark / paste indicator -->
+  <circle cx="680" cy="700" r="100" fill="#34C759" stroke="#2DA44E" stroke-width="6"/>
+  <polyline points="630,700 665,740 740,660" fill="none" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
