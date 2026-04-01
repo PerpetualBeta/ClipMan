@@ -7,7 +7,7 @@ struct ClipManApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        MenuBarExtra("ClipMan", systemImage: "clipboard") {
+        MenuBarExtra("ClipMan", systemImage: "scissors") {
             MenuBarView(
                 pasteEngine: appDelegate.pasteEngine,
                 onShowHistory: { appDelegate.toggleBrowser() },
@@ -62,6 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var isBrowserVisible = false
     private var clickOutsideMonitor: Any?
     private var previousApp: NSRunningApplication?
+    let updateChecker = JorvikUpdateChecker(repoName: "ClipMan")
 
     let modelContainer: ModelContainer = {
         let schema = Schema([ClipboardItem.self])
@@ -81,6 +82,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if !permissions.accessibilityGranted {
             permissions.requestAccessibility()
         }
+
+        updateChecker.checkOnSchedule()
 
         KeyboardShortcuts.onKeyUp(for: .showClipboardHistory) { [weak self] in
             Task { @MainActor in
@@ -125,19 +128,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             return
         }
 
-        let settingsView = SettingsView()
-            .frame(width: 420, height: 340)
+        let view = JorvikSettingsView(
+            appName: "ClipMan",
+            updateChecker: updateChecker
+        ) {
+            SettingsView()
 
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 340),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        window.isReleasedWhenClosed = false
+            MenuBarPillSettings()
+        }
+
+        let controller = NSHostingController(rootView: view)
+
+        let window = NSWindow(contentViewController: controller)
         window.title = "ClipMan Settings"
-        window.contentView = NSHostingView(rootView: settingsView)
-        window.center()
+        window.styleMask = [.titled, .closable]
+        window.isReleasedWhenClosed = false
+        window.setContentSize(NSSize(width: 420, height: 550))
+        JorvikWindowHelper.centreOnActiveDisplay(window)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow = window
@@ -145,30 +152,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     // MARK: - About Window
 
-    private var aboutWindow: NSWindow?
-
     func openAbout() {
-        if let existing = aboutWindow, existing.isVisible {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let aboutView = AboutView()
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
+        JorvikAboutView.showWindow(
+            appName: "ClipMan",
+            repoName: "ClipMan",
+            productPage: "utilities/clipman"
         )
-        window.isReleasedWhenClosed = false
-        window.title = "About ClipMan"
-        window.contentView = NSHostingView(rootView: aboutView)
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        aboutWindow = window
     }
 
     // MARK: - Browser Presentation

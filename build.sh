@@ -11,7 +11,7 @@ CONTENTS="$APP_BUNDLE/Contents"
 MACOS="$CONTENTS/MacOS"
 RESOURCES="$CONTENTS/Resources"
 
-SIGN_IDENTITY="41D24A24581E0D57E6FED1F82D29ED7024E435F5"
+SIGN_IDENTITY="Developer ID Application: Jonthan Hollin (EG86BCGUE7)"
 
 echo "==> Resolving dependencies..."
 swift package resolve
