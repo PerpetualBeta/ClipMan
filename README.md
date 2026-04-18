@@ -8,8 +8,12 @@ A lightweight macOS clipboard history manager that lives in the menu bar. Browse
 
 ## Installation
 
-1. Double-click `ClipMan.app` to launch it
-2. A clipboard icon appears in the menu bar
+Two formats on every release — both signed and notarised, pick whichever suits:
+
+- **[Installer (`.pkg`)](https://github.com/PerpetualBeta/ClipMan/releases/latest/download/ClipMan.pkg)** — recommended for first-time installs. Double-click to run; macOS Installer places the app in `/Applications` without quarantine or App Translocation.
+- **[Download (`.zip`)](https://github.com/PerpetualBeta/ClipMan/releases/latest)** — unzip and drag `ClipMan.app` to your Applications folder.
+
+After installation, launch ClipMan — a clipboard icon appears in the menu bar.
 
 
 ## How It Works
