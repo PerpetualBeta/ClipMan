@@ -6,16 +6,12 @@ import KeyboardShortcuts
 struct ClipManApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    // The status-bar icon, menu, popover, and click handling all live in
+    // AppDelegate. SwiftUI's App protocol still requires a Scene, so an
+    // empty Settings scene satisfies it without creating any window —
+    // ClipMan's settings UI is presented manually from AppDelegate.
     var body: some Scene {
-        MenuBarExtra("ClipMan", systemImage: "scissors") {
-            MenuBarView(
-                pasteEngine: appDelegate.pasteEngine,
-                onShowHistory: { appDelegate.toggleBrowser() },
-                onShowSettings: { appDelegate.openSettings() },
-                onShowAbout: { appDelegate.openAbout() }
-            )
-            .modelContainer(appDelegate.modelContainer)
-        }
+        Settings { EmptyView() }
     }
 }
 
@@ -55,13 +51,14 @@ extension Notification.Name {
 // MARK: - App Delegate
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, ObservableObject {
     let clipboardMonitor = ClipboardMonitor()
     private(set) lazy var pasteEngine = PasteEngine(monitor: clipboardMonitor)
     private var browserPanel: FloatingPanel?
     private var isBrowserVisible = false
     private var clickOutsideMonitor: Any?
     private var previousApp: NSRunningApplication?
+    private var statusItem: NSStatusItem!
     let updateChecker = JorvikUpdateChecker(repoName: "ClipMan")
 
     let modelContainer: ModelContainer = {
@@ -75,6 +72,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        UserDefaults.standard.register(defaults: ["menuBarPillEnabled": true])
+        migrateLegacyPillColorKey()
+
+        setupStatusItem()
+
         let context = ModelContext(modelContainer)
         clipboardMonitor.start(modelContext: context)
 
@@ -107,6 +109,100 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         clipboardMonitor.stop()
     }
 
+    // One-shot removal of the user-chosen pill colour key from the old design.
+    // The new pill uses fixed grey/light colours; the key is dead weight.
+    private func migrateLegacyPillColorKey() {
+        let migrated = "didMigratePillColorV2"
+        if UserDefaults.standard.bool(forKey: migrated) { return }
+        UserDefaults.standard.removeObject(forKey: "menuBarPillColor")
+        UserDefaults.standard.set(true, forKey: migrated)
+    }
+
+    // MARK: - Status Item
+
+    private func setupStatusItem() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.autosaveName = "ClipManStatus"
+        refreshIcon()
+        let menu = NSMenu()
+        menu.delegate = self
+        statusItem.menu = menu
+    }
+
+    func refreshIcon() {
+        statusItem.button?.image = JorvikMenuBarPill.icon(
+            symbolName: "scissors",
+            accessibilityDescription: "ClipMan"
+        )
+    }
+
+    // MARK: - NSMenuDelegate
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        let isEmpty = historyIsEmpty()
+        let actions: [JorvikMenuBuilder.ActionItem] = [
+            JorvikMenuBuilder.ActionItem(
+                title: "Show Clipboard History\u{2026}",
+                action: #selector(showHistoryAction),
+                target: self
+            ),
+            JorvikMenuBuilder.ActionItem(
+                title: "Clear History",
+                action: #selector(clearHistoryAction),
+                target: self,
+                isEnabled: !isEmpty
+            ),
+        ]
+        let built = JorvikMenuBuilder.buildMenu(
+            appName: "ClipMan",
+            aboutAction: #selector(openAboutAction),
+            settingsAction: #selector(openSettingsAction),
+            target: self,
+            actions: actions
+        )
+
+        // Display the current global hotkey next to "Show Clipboard History…".
+        // JorvikMenuBuilder.ActionItem only carries a single-char keyEquivalent
+        // and no modifier mask; the user-configured shortcut needs both, so
+        // apply them post-build.
+        if let shortcut = KeyboardShortcuts.getShortcut(for: .showClipboardHistory),
+           let keyEquiv = shortcut.nsMenuItemKeyEquivalent,
+           let item = built.items.first(where: { $0.title == "Show Clipboard History\u{2026}" }) {
+            item.keyEquivalent = keyEquiv
+            item.keyEquivalentModifierMask = shortcut.modifiers
+        }
+
+        menu.removeAllItems()
+        for item in built.items {
+            built.removeItem(item)
+            menu.addItem(item)
+        }
+    }
+
+    @objc private func showHistoryAction() { toggleBrowser() }
+    @objc private func clearHistoryAction() { clearHistory() }
+    @objc private func openAboutAction() { openAbout() }
+    @objc private func openSettingsAction() { openSettings() }
+
+    private func historyIsEmpty() -> Bool {
+        let context = ModelContext(modelContainer)
+        let count = (try? context.fetchCount(FetchDescriptor<ClipboardItem>())) ?? 0
+        return count == 0
+    }
+
+    private func clearHistory() {
+        let context = ModelContext(modelContainer)
+        do {
+            let items = try context.fetch(FetchDescriptor<ClipboardItem>())
+            for item in items where !item.isPinned {
+                context.delete(item)
+            }
+            try context.save()
+        } catch {
+            // Non-fatal; the next paste will still work.
+        }
+    }
+
     // MARK: - Browser Panel
 
     func toggleBrowser() {
@@ -131,10 +227,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let view = JorvikSettingsView(
             appName: "ClipMan",
             updateChecker: updateChecker
-        ) {
+        ) { [weak self] in
             SettingsView()
 
-            MenuBarPillSettings()
+            MenuBarPillSettings { self?.refreshIcon() }
         }
 
         let controller = NSHostingController(rootView: view)

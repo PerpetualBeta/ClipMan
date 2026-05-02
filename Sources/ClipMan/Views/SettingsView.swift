@@ -14,11 +14,11 @@ struct SettingsView: View {
             HStack {
                 Text("Buffer size")
                 Spacer()
-                Stepper(value: $maxItems, in: 10...500, step: 10) {
-                    Text("\(maxItems) items")
-                        .monospacedDigit()
-                        .frame(width: 80, alignment: .trailing)
-                }
+                Text("\(maxItems) items")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                Stepper("", value: $maxItems, in: 10...500, step: 10)
+                    .labelsHidden()
             }
         }
 
