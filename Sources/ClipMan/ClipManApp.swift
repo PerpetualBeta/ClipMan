@@ -72,7 +72,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        UserDefaults.standard.register(defaults: ["menuBarPillEnabled": true])
         migrateLegacyPillColorKey()
 
         setupStatusItem()
