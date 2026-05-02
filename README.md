@@ -69,7 +69,7 @@ Click the clipboard icon in the menu bar for quick access to:
 
 | Component | Purpose |
 |-----------|---------|
-| `ClipManApp.swift` | Entry point, MenuBarExtra, AppDelegate with floating panel management |
+| `ClipManApp.swift` | Entry point; AppDelegate owning the menu-bar `NSStatusItem`, dynamic NSMenu, and floating panel management |
 | `ClipboardMonitor.swift` | Polls NSPasteboard, captures content, deduplicates, trims history |
 | `PasteEngine.swift` | Places items on pasteboard and simulates ⌘V / ⌥⇧⌘V keystrokes |
 | `ClipboardBrowserView.swift` | SwiftUI floating browser with navigation, pin, delete |
