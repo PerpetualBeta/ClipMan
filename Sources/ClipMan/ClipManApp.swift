@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import KeyboardShortcuts
+import Sparkle
 
 @main
 struct ClipManApp: App {
@@ -60,6 +61,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     private var previousApp: NSRunningApplication?
     private var statusItem: NSStatusItem!
     let updateChecker = JorvikUpdateChecker(repoName: "ClipMan")
+    let sparkleUserDriverDelegate = ClipManUserDriverDelegate()
+    lazy var sparkleUpdater = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: sparkleUserDriverDelegate
+    )
 
     let modelContainer: ModelContainer = {
         let schema = Schema([ClipboardItem.self])
@@ -84,7 +91,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
             permissions.requestAccessibility()
         }
 
-        updateChecker.checkOnSchedule()
+        // Sparkle handles update polling now. JorvikUpdateChecker instance
+        // remains because JorvikSettingsView.showWindow still requires one
+        // as a parameter, pending JorvikKit retirement (§11.5).
+        _ = sparkleUpdater  // forces lazy init so Sparkle starts at launch
+        // updateChecker.checkOnSchedule()  // disabled — Sparkle owns this now
 
         KeyboardShortcuts.onKeyUp(for: .showClipboardHistory) { [weak self] in
             Task { @MainActor in
@@ -151,6 +162,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
                 target: self,
                 isEnabled: !isEmpty
             ),
+            JorvikMenuBuilder.ActionItem(title: "-", action: #selector(noop), target: self),
+            JorvikMenuBuilder.ActionItem(
+                title: "Check for Updates\u{2026}",
+                action: #selector(checkForUpdates(_:)),
+                target: self
+            ),
         ]
         let built = JorvikMenuBuilder.buildMenu(
             appName: "ClipMan",
@@ -182,6 +199,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     @objc private func clearHistoryAction() { clearHistory() }
     @objc private func openAboutAction() { openAbout() }
     @objc private func openSettingsAction() { openSettings() }
+    @objc func checkForUpdates(_ sender: Any?) { sparkleUpdater.checkForUpdates(sender) }
+    @objc private func noop() {}
 
     private func historyIsEmpty() -> Bool {
         let context = ModelContext(modelContainer)
@@ -335,5 +354,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
                 self.pasteEngine.paste(item)
             }
         }
+    }
+}
+
+/// LSUIElement apps don't auto-activate when they present windows, so
+/// Sparkle's update dialogs would appear behind whatever app is currently
+/// key. This brings ClipMan frontmost just before each modal.
+final class ClipManUserDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
+    func standardUserDriverWillShowModalAlert() {
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

@@ -58,6 +58,7 @@ If you copy the same content twice in a row, ClipMan won't create a duplicate en
 Click the clipboard icon in the menu bar for quick access to:
 - **Browse History** — opens the floating browser panel
 - **Settings** — configure history limit and keyboard shortcut
+- **Check for Updates…** — Sparkle-driven update check
 - **About** — version info
 - **Quit**
 
