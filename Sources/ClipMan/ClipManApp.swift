@@ -364,17 +364,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
 /// Sparkle's update dialogs would appear behind whatever app is currently
 /// key. This brings ClipMan frontmost before each piece of UI.
 ///
-/// `standardUserDriverWillShowModalAlert` only fires for modal NSAlerts
-/// ("you're up to date", error sheets). The "Update Available" UI in
-/// Sparkle 2.x is a regular NSWindow and goes through
-/// `standardUserDriverWillHandleShowingUpdate` instead — we hook both
-/// so neither path can land behind another app.
+/// Sparkle 2.x exposes hooks for the modal alert ("you're up to date")
+/// and for the "Update Available" window, but **not** for the status
+/// window ("Downloading…", "Ready to Install"). The status window is
+/// the one that lingers across the longest stretch of time, so the user
+/// has usually switched apps before the download completes.
+///
+/// Workaround: while an update session is in progress, observe
+/// `NSWindow.didBecomeKeyNotification` and re-activate the app any time
+/// one of our own windows becomes key. Sparkle calls
+/// `makeKeyAndOrderFront` each time the status window transitions state,
+/// so this catches the "Ready to Install" surfacing for free.
 final class ClipManUserDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
+    private var sessionObserver: NSObjectProtocol?
+
     func standardUserDriverWillShowModalAlert() {
         NSApp.activate(ignoringOtherApps: true)
     }
 
     func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+        startFocusGuard()
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func standardUserDriverWillFinishUpdateSession() {
+        stopFocusGuard()
+    }
+
+    private func startFocusGuard() {
+        guard sessionObserver == nil else { return }
+        sessionObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+
+    private func stopFocusGuard() {
+        if let obs = sessionObserver {
+            NotificationCenter.default.removeObserver(obs)
+            sessionObserver = nil
+        }
     }
 }
