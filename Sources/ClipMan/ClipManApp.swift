@@ -199,7 +199,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     @objc private func clearHistoryAction() { clearHistory() }
     @objc private func openAboutAction() { openAbout() }
     @objc private func openSettingsAction() { openSettings() }
-    @objc func checkForUpdates(_ sender: Any?) { sparkleUpdater.checkForUpdates(sender) }
+    @objc func checkForUpdates(_ sender: Any?) {
+        NSApp.activate(ignoringOtherApps: true)
+        sparkleUpdater.checkForUpdates(sender)
+    }
     @objc private func noop() {}
 
     private func historyIsEmpty() -> Bool {
@@ -359,9 +362,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
 
 /// LSUIElement apps don't auto-activate when they present windows, so
 /// Sparkle's update dialogs would appear behind whatever app is currently
-/// key. This brings ClipMan frontmost just before each modal.
+/// key. This brings ClipMan frontmost before each piece of UI.
+///
+/// `standardUserDriverWillShowModalAlert` only fires for modal NSAlerts
+/// ("you're up to date", error sheets). The "Update Available" UI in
+/// Sparkle 2.x is a regular NSWindow and goes through
+/// `standardUserDriverWillHandleShowingUpdate` instead — we hook both
+/// so neither path can land behind another app.
 final class ClipManUserDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
     func standardUserDriverWillShowModalAlert() {
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
         NSApp.activate(ignoringOtherApps: true)
     }
 }
