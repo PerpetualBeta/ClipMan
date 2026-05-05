@@ -34,6 +34,7 @@ struct ClipboardItemPreview: View {
                     Label("Paste", systemImage: "doc.on.clipboard")
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(Color(red: 0, green: 64/255, blue: 128/255))
 
                 Button {
                     onPasteMatchStyle()
