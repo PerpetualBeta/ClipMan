@@ -200,7 +200,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     @objc private func openAboutAction() { openAbout() }
     @objc private func openSettingsAction() { openSettings() }
     @objc func checkForUpdates(_ sender: Any?) {
-        NSApp.activate(ignoringOtherApps: true)
+        NSRunningApplication.current.activate(options: [.activateAllWindows])
         sparkleUpdater.checkForUpdates(sender)
     }
     @objc private func noop() {}
@@ -360,35 +360,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     }
 }
 
-/// LSUIElement apps don't auto-activate when they present windows, so
-/// Sparkle's update dialogs would appear behind whatever app is currently
-/// key. This brings ClipMan frontmost before each piece of UI.
+/// Keeps Sparkle's update UI visible across the whole session, including
+/// when the user switches to another app mid-download.
 ///
-/// Sparkle 2.x exposes hooks for the modal alert ("you're up to date")
-/// and for the "Update Available" window, but **not** for the status
-/// window ("Downloading…", "Ready to Install"). The status window is
-/// the one that lingers across the longest stretch of time, so the user
-/// has usually switched apps before the download completes.
+/// macOS 14+ deprecated `NSApp.activate(ignoringOtherApps: true)` and
+/// the system now asks the active app for permission to yield focus
+/// (often refused). Activation alone isn't enough.
 ///
-/// Workaround: while an update session is in progress, observe
-/// `NSWindow.didBecomeKeyNotification` and re-activate the app any time
-/// one of our own windows becomes key. Sparkle calls
-/// `makeKeyAndOrderFront` each time the status window transitions state,
-/// so this catches the "Ready to Install" surfacing for free.
+/// Belt-and-braces strategy:
+///  1. Use the modern activation API
+///     (`NSRunningApplication.current.activate(options: [.activateAllWindows])`)
+///     instead of the deprecated form.
+///  2. While an update session is active, elevate every one of our
+///     windows to `.floating`. A floating window (level 3) stays above
+///     any other app's `.normal` windows (level 0) regardless of which
+///     app holds focus — so even if the user switches to RM, the
+///     Sparkle status / update windows remain visible.
+///  3. Restore window levels when the session ends so we don't leave
+///     non-update windows pinned floating.
 final class ClipManUserDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
     private var sessionObserver: NSObjectProtocol?
+    private var elevatedWindows: [(window: NSWindow, originalLevel: NSWindow.Level)] = []
 
     func standardUserDriverWillShowModalAlert() {
-        NSApp.activate(ignoringOtherApps: true)
+        bringForward()
     }
 
     func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
         startFocusGuard()
-        NSApp.activate(ignoringOtherApps: true)
+        bringForward()
     }
 
     func standardUserDriverWillFinishUpdateSession() {
         stopFocusGuard()
+    }
+
+    private func bringForward() {
+        NSRunningApplication.current.activate(options: [.activateAllWindows])
+        elevateAllWindows()
     }
 
     private func startFocusGuard() {
@@ -397,8 +406,8 @@ final class ClipManUserDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
             forName: NSWindow.didBecomeKeyNotification,
             object: nil,
             queue: .main
-        ) { _ in
-            NSApp.activate(ignoringOtherApps: true)
+        ) { [weak self] _ in
+            self?.bringForward()
         }
     }
 
@@ -406,6 +415,20 @@ final class ClipManUserDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
         if let obs = sessionObserver {
             NotificationCenter.default.removeObserver(obs)
             sessionObserver = nil
+        }
+        for entry in elevatedWindows {
+            entry.window.level = entry.originalLevel
+        }
+        elevatedWindows.removeAll()
+    }
+
+    /// Promote every visible window in this process to `.floating`. Any
+    /// new Sparkle window that opens during the session is caught by
+    /// the key-notification observer above and elevated then.
+    private func elevateAllWindows() {
+        for window in NSApp.windows where window.isVisible && window.level == .normal {
+            elevatedWindows.append((window, window.level))
+            window.level = .floating
         }
     }
 }
