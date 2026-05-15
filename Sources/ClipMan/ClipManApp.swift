@@ -60,7 +60,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     private var clickOutsideMonitor: Any?
     private var previousApp: NSRunningApplication?
     private var statusItem: NSStatusItem!
-    let updateChecker = JorvikUpdateChecker(repoName: "ClipMan")
     let sparkleUserDriverDelegate = ClipManUserDriverDelegate()
     lazy var sparkleUpdater = SPUStandardUpdaterController(
         startingUpdater: true,
@@ -91,11 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
             permissions.requestAccessibility()
         }
 
-        // Sparkle handles update polling now. JorvikUpdateChecker instance
-        // remains because JorvikSettingsView.showWindow still requires one
-        // as a parameter, pending JorvikKit retirement (§11.5).
         _ = sparkleUpdater  // forces lazy init so Sparkle starts at launch
-        // updateChecker.checkOnSchedule()  // disabled — Sparkle owns this now
 
         KeyboardShortcuts.onKeyUp(for: .showClipboardHistory) { [weak self] in
             Task { @MainActor in
@@ -245,10 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
             return
         }
 
-        let view = JorvikSettingsView(
-            appName: "ClipMan",
-            updateChecker: updateChecker
-        ) { [weak self] in
+        let view = JorvikSettingsView(appName: "ClipMan") { [weak self] in
             SettingsView()
 
             MenuBarPillSettings { self?.refreshIcon() }
