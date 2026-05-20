@@ -86,9 +86,11 @@ ClipMan uses Swift Package Manager. No Xcode project is required.
 ```bash
 git clone https://github.com/PerpetualBeta/ClipMan.git
 cd ClipMan
-./build.sh
+gmake build
 open .build/ClipMan.app
 ```
+
+Requires GNU Make 4.x — `brew install make` installs it as `gmake`.
 
 ### Dependencies
 
