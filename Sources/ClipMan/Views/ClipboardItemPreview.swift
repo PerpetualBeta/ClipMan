@@ -60,15 +60,42 @@ struct ClipboardItemPreview: View {
                 .frame(maxHeight: 200)
                 .clipShape(RoundedRectangle(cornerRadius: 6))
         } else {
-            // Plain/rich text
+            // Plain/rich text. Cap what we hand to Text — CoreText typesets
+            // the *entire* string before lineLimit/clipping apply, so a
+            // multi-megabyte clipboard item beachballs the app just to draw
+            // a 200pt preview. Only the preview is truncated; the full item
+            // pastes intact.
             ScrollView {
-                Text(item.content)
-                    .font(.system(.body, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(previewText)
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if isPreviewTruncated {
+                        Text("Preview truncated — the full \(item.content.count.formatted())-character item pastes intact.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
             .frame(maxHeight: 200)
         }
+    }
+
+    /// Maximum characters the preview renders. A 200pt pane shows a few
+    /// dozen lines at most; beyond this the CoreText layout cost becomes
+    /// user-visible with zero benefit.
+    private static let previewCharacterLimit = 4_000
+
+    private var isPreviewTruncated: Bool {
+        item.content.count > Self.previewCharacterLimit
+    }
+
+    private var previewText: String {
+        isPreviewTruncated
+            ? String(item.content.prefix(Self.previewCharacterLimit)) + "…"
+            : item.content
     }
 
     @ViewBuilder
