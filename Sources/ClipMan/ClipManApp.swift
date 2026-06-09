@@ -59,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     private var isBrowserVisible = false
     private var clickOutsideMonitor: Any?
     private var previousApp: NSRunningApplication?
-    private var statusItem: NSStatusItem!
+    private var statusItem: NSStatusItem?
     let sparkleUserDriverDelegate = ClipManUserDriverDelegate()
     lazy var sparkleUpdater = SPUStandardUpdaterController(
         startingUpdater: true,
@@ -80,7 +80,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     func applicationDidFinishLaunching(_ notification: Notification) {
         migrateLegacyPillColorKey()
 
-        setupStatusItem()
+        createStatusItem()
+
+        // Re-create or tear down the status item when its visibility flag changes.
+        NotificationCenter.default.addObserver(
+            forName: JorvikStatusItemVisibility.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.applyStatusItemVisibility()
+            }
+        }
 
         let context = ModelContext(modelContainer)
         clipboardMonitor.start(modelContext: context)
@@ -127,6 +138,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
         clipboardMonitor.stop()
     }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        JorvikStatusItemVisibility.handleReopen()
+        return true
+    }
+
     // One-shot removal of the user-chosen pill colour key from the old design.
     // The new pill uses fixed grey/light colours; the key is dead weight.
     private func migrateLegacyPillColorKey() {
@@ -138,17 +154,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
 
     // MARK: - Status Item
 
-    private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.autosaveName = "ClipManStatus"
-        refreshIcon()
+    private func createStatusItem() {
+        guard JorvikStatusItemVisibility.isVisible else { return }
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.autosaveName = "ClipManStatus"
         let menu = NSMenu()
         menu.delegate = self
-        statusItem.menu = menu
+        item.menu = menu
+        statusItem = item
+        refreshIcon()
+    }
+
+    func applyStatusItemVisibility() {
+        if JorvikStatusItemVisibility.isVisible {
+            if statusItem == nil { createStatusItem() }
+        } else if let item = statusItem {
+            NSStatusBar.system.removeStatusItem(item)
+            statusItem = nil
+        }
     }
 
     func refreshIcon() {
-        statusItem.button?.image = JorvikMenuBarPill.icon(
+        statusItem?.button?.image = JorvikMenuBarPill.icon(
             symbolName: "scissors",
             accessibilityDescription: "ClipMan"
         )
@@ -255,6 +282,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
 
         let view = JorvikSettingsView(appName: "ClipMan") { [weak self] in
             SettingsView()
+
+            MenuBarVisibilitySettings()
 
             MenuBarPillSettings { self?.refreshIcon() }
         }
