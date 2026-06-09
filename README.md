@@ -62,6 +62,25 @@ Click the clipboard icon in the menu bar for quick access to:
 - **About** — version info
 - **Quit**
 
+## Settings
+
+Right-click the clipboard icon in the menu bar and choose **Settings…** to configure:
+
+- **Clipboard buffer size** — keep between 10 and 500 items (default 50)
+- **Keyboard shortcut** — customise the global hotkey for opening the clipboard browser
+- **Accessibility permission** — status display and grant button (required for paste simulation)
+- **Show icon in menu bar** — hide the menu-bar icon while ClipMan keeps running (still reachable via its keyboard shortcut). Your choice persists across launches, including login auto-start. *Shown only on macOS 14–15 — on macOS 26 (Tahoe) and later, use System Settings → Menu Bar, which provides this natively.*
+- **Menu bar icon pill** — optional grey background for stronger contrast on busy or wallpaper-tinted menu bars (off by default)
+- **Launch at Login** — start ClipMan automatically when you log in
+
+If you've hidden the status icon and want it back, simply re-open ClipMan from your Applications folder — it reappears immediately.
+
+Auto-updates are handled by Sparkle. Use the **Check for Updates…** entry in the menu to check on demand; Sparkle's prompt offers an "Automatically download and install updates in the future" checkbox the first time an update is available.
+
+## Quitting
+
+Right-click the clipboard icon in the menu bar and choose **Quit ClipMan**. If you've hidden that icon, re-open ClipMan from your Applications folder first to bring it back, then quit from the menu.
+
 ## Permissions
 
 - **Accessibility** — required for simulating paste keystrokes (⌘V) into the target application. macOS will prompt on first use.
