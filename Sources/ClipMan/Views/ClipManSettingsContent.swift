@@ -1,7 +1,7 @@
 import SwiftUI
 import KeyboardShortcuts
 
-struct SettingsView: View {
+struct ClipManSettingsContent: View {
     @AppStorage("maxClipboardItems") private var maxItems: Int = 50
     @State private var permissionsManager = PermissionsManager()
 

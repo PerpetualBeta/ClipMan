@@ -271,34 +271,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
 
     // MARK: - Settings Window
 
-    private var settingsWindow: NSWindow?
-
     func openSettings() {
-        if let existing = settingsWindow, existing.isVisible {
-            existing.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let view = JorvikSettingsView(appName: "ClipMan") { [weak self] in
-            SettingsView()
+        JorvikSettingsView.showWindow(appName: "ClipMan") { [weak self] in
+            ClipManSettingsContent()
 
             MenuBarVisibilitySettings()
 
             MenuBarPillSettings { self?.refreshIcon() }
         }
-
-        let controller = NSHostingController(rootView: view)
-
-        let window = NSWindow(contentViewController: controller)
-        window.title = "ClipMan Settings"
-        window.styleMask = [.titled, .closable]
-        window.isReleasedWhenClosed = false
-        window.setContentSize(NSSize(width: 420, height: 550))
-        JorvikWindowHelper.centreOnActiveDisplay(window)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        settingsWindow = window
     }
 
     // MARK: - About Window
