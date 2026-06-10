@@ -118,10 +118,6 @@ struct ClipboardBrowserView: View {
 
             Spacer()
 
-            pageIndicator
-
-            Spacer()
-
             Button {
                 navigateNext()
             } label: {
@@ -133,24 +129,6 @@ struct ClipboardBrowserView: View {
         .padding(.vertical, 8)
     }
 
-    private var pageIndicator: some View {
-        HStack(spacing: 4) {
-            let totalDots = min(items.count, 10)
-            ForEach(0..<totalDots, id: \.self) { dotIndex in
-                let itemIndex = mappedIndex(dotIndex: dotIndex, totalDots: totalDots)
-                Circle()
-                    .fill(itemIndex == currentIndex ? Color.accentColor : Color.secondary.opacity(0.3))
-                    .frame(width: 6, height: 6)
-            }
-        }
-    }
-
-    private func mappedIndex(dotIndex: Int, totalDots: Int) -> Int {
-        if items.count <= 10 { return dotIndex }
-        let halfDots = totalDots / 2
-        let windowStart = max(0, min(currentIndex - halfDots, items.count - totalDots))
-        return windowStart + dotIndex
-    }
 
     private func clampIndex() {
         if items.isEmpty {
