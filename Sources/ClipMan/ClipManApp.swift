@@ -67,15 +67,82 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
         userDriverDelegate: sparkleUserDriverDelegate
     )
 
+    // SwiftData store, kept in an app-private directory.
+    //
+    // CRITICAL: a default `ModelConfiguration` (no `url:`) writes to the shared
+    // `~/Library/Application Support/default.store`. On a non-sandboxed Mac that
+    // single file is common ground for *every* app that likewise omits a custom
+    // URL. When another such app opens it with a different model, Core Data's
+    // automatic migration treats `ClipboardItem` as a removed entity and DROPS
+    // the table — silently wiping all clipboard history and pins. (Field
+    // evidence: the shared store had logged 5,676 transactions yet ClipMan's
+    // primary-key counter had been reset to 3.) Pinning ClipMan to its own file
+    // removes it from the shared store entirely, so nothing else can touch it.
     let modelContainer: ModelContainer = {
         let schema = Schema([ClipboardItem.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let config = ModelConfiguration(schema: schema, url: AppDelegate.privateStoreURL())
         do {
-            return try ModelContainer(for: schema, configurations: [config])
+            let container = try ModelContainer(for: schema, configurations: [config])
+            AppDelegate.migrateOffSharedStoreIfNeeded(into: container)
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
+
+    /// `~/Library/Application Support/ClipMan/ClipMan.store`, creating the
+    /// containing directory if needed. Core Data creates the store file itself
+    /// but requires its parent directory to already exist.
+    private static func privateStoreURL() -> URL {
+        let fm = FileManager.default
+        let appSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let dir = appSupport.appendingPathComponent("ClipMan", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("ClipMan.store")
+    }
+
+    /// One-time rescue of whatever still survives in the old shared
+    /// `default.store`, copied into the new private store. Gated by a defaults
+    /// flag so it runs exactly once — afterwards ClipMan never re-opens the
+    /// shared file. Best-effort throughout: a failure here must never block
+    /// launch, and the copy is skipped if the private store already has data so
+    /// a stray re-run can't duplicate items.
+    private static func migrateOffSharedStoreIfNeeded(into container: ModelContainer) {
+        let flag = "didMigrateOffSharedStore"
+        guard !UserDefaults.standard.bool(forKey: flag) else { return }
+        defer { UserDefaults.standard.set(true, forKey: flag) }
+
+        let fm = FileManager.default
+        let appSupport = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let oldURL = appSupport.appendingPathComponent("default.store")
+        guard fm.fileExists(atPath: oldURL.path) else { return }
+
+        let newContext = ModelContext(container)
+        let newCount = (try? newContext.fetchCount(FetchDescriptor<ClipboardItem>())) ?? 0
+        guard newCount == 0 else { return }
+
+        let schema = Schema([ClipboardItem.self])
+        let oldConfig = ModelConfiguration(schema: schema, url: oldURL)
+        guard let oldContainer = try? ModelContainer(for: schema, configurations: [oldConfig]) else { return }
+        let oldContext = ModelContext(oldContainer)
+        guard let survivors = try? oldContext.fetch(
+            FetchDescriptor<ClipboardItem>(sortBy: [SortDescriptor(\.timestamp, order: .forward)])
+        ), !survivors.isEmpty else { return }
+
+        for old in survivors {
+            let copy = ClipboardItem(
+                content: old.content,
+                rtfData: old.rtfData,
+                imageData: old.imageData,
+                fileURLs: old.fileURLs,
+                sourceApp: old.sourceApp,
+                isPinned: old.isPinned
+            )
+            copy.timestamp = old.timestamp
+            newContext.insert(copy)
+        }
+        try? newContext.save()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         migrateLegacyPillColorKey()
