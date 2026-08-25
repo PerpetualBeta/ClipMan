@@ -27,14 +27,14 @@ ClipMan monitors the system pasteboard every 0.5 seconds. When it detects a chan
 
 ### Browsing History
 
-Press **⌥⌘V** (Option-Command-V) to open the clipboard browser, a floating panel that shows your history. Navigate with:
+Press `option` `command` `V` to open the clipboard browser, a floating panel that shows your history. Navigate with:
 
 | Key | Action |
 |-----|--------|
-| **←** / **→** | Browse older / newer items |
-| **Return** | Paste selected item |
-| **Shift+Return** | Paste and match style |
-| **Escape** | Dismiss browser |
+| `left` / `right` | Browse older / newer items |
+| `return` | Paste selected item |
+| `shift` `return` | Paste and match style |
+| `esc` | Dismiss browser |
 
 The browser also has on-screen controls for navigation, pinning, and deleting items.
 
@@ -88,7 +88,7 @@ Right-click the clipboard icon in the menu bar and choose **Quit ClipMan**. If y
 
 ## Permissions
 
-- **Accessibility** — required for simulating paste keystrokes (⌘V) into the target application. macOS will prompt on first use.
+- **Accessibility** — required for simulating paste keystrokes (`command` `V`) into the target application. macOS will prompt on first use.
 
 ## Architecture
 
@@ -96,7 +96,7 @@ Right-click the clipboard icon in the menu bar and choose **Quit ClipMan**. If y
 |-----------|---------|
 | `ClipManApp.swift` | Entry point; AppDelegate owning the menu-bar `NSStatusItem`, dynamic NSMenu, and floating panel management |
 | `ClipboardMonitor.swift` | Polls NSPasteboard, captures content, deduplicates, trims history |
-| `PasteEngine.swift` | Places items on pasteboard and simulates ⌘V / ⌥⇧⌘V keystrokes |
+| `PasteEngine.swift` | Places items on pasteboard and simulates `command` `V` / `option` `shift` `command` `V` keystrokes |
 | `ClipboardBrowserView.swift` | SwiftUI floating browser with navigation, pin, delete |
 | `ClipboardItemPreview.swift` | Renders text, image, and file previews |
 | `ClipboardItem.swift` | SwiftData model — content, RTF, image data, file URLs, pin state |
@@ -115,7 +115,7 @@ git clone https://github.com/PerpetualBeta/jorvik-release.git
 git clone https://github.com/PerpetualBeta/ClipMan.git
 cd ClipMan
 gmake build
-open .build/ClipMan.app
+open.build/ClipMan.app
 ```
 
 ### Dependencies
