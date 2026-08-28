@@ -8,11 +8,19 @@ struct ClipManApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     // The status-bar icon, menu, popover, and click handling all live in
-    // AppDelegate. SwiftUI's App protocol still requires a Scene, so an
-    // empty Settings scene satisfies it without creating any window —
-    // ClipMan's settings UI is presented manually from AppDelegate.
+    // AppDelegate.
     var body: some Scene {
+        // This scene exists only because App requires one — the Settings window
+        // the user sees is opened from the status-item menu, imperatively, by
+        // JorvikSettingsView.showWindow. A Settings scene also brings the
+        // standard "Settings…" item and its Command+, shortcut, and both opened
+        // this empty placeholder as a second Settings window. Replacing the
+        // command group removes the item and the shortcut with it; removing the
+        // menu item on its own does not, the shortcut still reaches the scene.
         Settings { EmptyView() }
+            .commands {
+                CommandGroup(replacing: .appSettings) { }
+            }
     }
 }
 
@@ -145,6 +153,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // The App scene replaces the Settings command group, so Command+, can no
+        // longer open the empty placeholder window; this takes out the separator
+        // that removing the "Settings…" item leaves behind.
+        JorvikApplicationMenu.removeRedundantSeparators()
+
         migrateLegacyPillColorKey()
 
         createStatusItem()
