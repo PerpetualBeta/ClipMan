@@ -41,6 +41,18 @@ struct ClipManSettingsContent: View {
                         carbonModifiers: carbonMods
                     )
                     KeyboardShortcuts.setShortcut(shortcut, for: .showClipboardHistory)
+                },
+                onRecordingChanged: { recording in
+                    // The shortcut is registered as a Carbon hotkey by the
+                    // KeyboardShortcuts package, which consumes the keystroke
+                    // before the recorder sees it — so pressing the shortcut
+                    // already set would open the history window instead of
+                    // being recorded, and could never be changed.
+                    if recording {
+                        KeyboardShortcuts.disable(.showClipboardHistory)
+                    } else {
+                        KeyboardShortcuts.enable(.showClipboardHistory)
+                    }
                 }
             )
         }
