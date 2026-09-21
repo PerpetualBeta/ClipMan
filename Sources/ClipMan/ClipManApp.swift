@@ -3,24 +3,27 @@ import SwiftData
 import KeyboardShortcuts
 import Sparkle
 
+/// The entry point. Deliberately not a SwiftUI `App`.
+///
+/// `App` must vend at least one scene, and the only scene this app ever had was
+/// a `Settings { EmptyView() }` placeholder it never opened — the settings
+/// window the user sees comes from the status-item menu, via
+/// `JorvikSettingsView.showWindow`. On macOS 26 and later that placeholder is
+/// opened as a real window at launch: blank, titled after the app, roughly
+/// 900x450. Removing the scene removes the window it could open.
+///
+/// `@main` on a type rather than top-level code in a `main.swift`, because
+/// `AppDelegate` is `@MainActor` and top-level code is not isolated to it, so
+/// constructing the delegate there does not compile.
 @main
-struct ClipManApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+enum ClipManMain {
 
-    // The status-bar icon, menu, popover, and click handling all live in
-    // AppDelegate.
-    var body: some Scene {
-        // This scene exists only because App requires one — the Settings window
-        // the user sees is opened from the status-item menu, imperatively, by
-        // JorvikSettingsView.showWindow. A Settings scene also brings the
-        // standard "Settings…" item and its Command+, shortcut, and both opened
-        // this empty placeholder as a second Settings window. Replacing the
-        // command group removes the item and the shortcut with it; removing the
-        // menu item on its own does not, the shortcut still reaches the scene.
-        Settings { EmptyView() }
-            .commands {
-                CommandGroup(replacing: .appSettings) { }
-            }
+    @MainActor
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.run()
     }
 }
 
@@ -153,10 +156,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, Observ
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // The App scene replaces the Settings command group, so Command+, can no
-        // longer open the empty placeholder window; this takes out the separator
-        // that removing the "Settings…" item leaves behind.
-        JorvikApplicationMenu.removeRedundantSeparators()
+        // There is no SwiftUI App to build a menu bar for us, so build one. It is
+        // never drawn — an accessory app has no menu bar — but AppKit routes key
+        // equivalents through it, which is what makes Command+Q quit and the
+        // editing shortcuts work in the settings window's text fields.
+        JorvikApplicationMenu.install()
 
         migrateLegacyPillColorKey()
 
