@@ -42,6 +42,15 @@ struct ClipManSettingsContent: View {
                     )
                     KeyboardShortcuts.setShortcut(shortcut, for: .showClipboardHistory)
                 },
+                onClear: {
+                    // nil is how the KeyboardShortcuts package unregisters a
+                    // Carbon hotkey. Zeroing the local state alongside it keeps
+                    // the recorder's own view of "is anything set" honest, so
+                    // the Clear button goes away with the shortcut.
+                    KeyboardShortcuts.setShortcut(nil, for: .showClipboardHistory)
+                    keyCode = 0
+                    modifiers = []
+                },
                 onRecordingChanged: { recording in
                     // The shortcut is registered as a Carbon hotkey by the
                     // KeyboardShortcuts package, which consumes the keystroke
@@ -91,17 +100,23 @@ struct ClipManSettingsContent: View {
         return "Not set"
     }
 
+    /// Zero when nothing is bound, not a plausible-looking default.
+    ///
+    /// These two seed the recorder's bindings, and the recorder decides whether
+    /// to offer Clear from them. Returning ⌥⌘V for an unset shortcut put a
+    /// Clear button next to the words "Not set", which is the same contradiction
+    /// Save Cannes had.
     private static func currentKeyCode() -> UInt16 {
         if let shortcut = KeyboardShortcuts.getShortcut(for: .showClipboardHistory) {
             return UInt16(shortcut.carbonKeyCode)
         }
-        return 9 // V
+        return 0
     }
 
     private static func currentModifiers() -> NSEvent.ModifierFlags {
         if let shortcut = KeyboardShortcuts.getShortcut(for: .showClipboardHistory) {
             return shortcut.modifiers
         }
-        return [.option, .command]
+        return []
     }
 }

@@ -72,9 +72,9 @@ Click the clipboard icon in the menu bar for quick access to:
 Right-click the clipboard icon in the menu bar and choose **Settings…** to configure:
 
 - **Clipboard buffer size** — keep between 10 and 500 items (default 50)
-- **Keyboard shortcut** — customise the global hotkey for opening the clipboard browser
+- **Keyboard shortcut** — customise the global hotkey for opening the clipboard browser, or clear it entirely. With no shortcut bound, the browser still opens from **Show Clipboard History…** in the menu bar
 - **Accessibility permission** — status display and grant button (required for paste simulation)
-- **Show icon in menu bar** — hide the menu-bar icon while ClipMan keeps running (still reachable via its keyboard shortcut). Your choice persists across launches, including login auto-start. *Shown only on macOS 14–15 — on macOS 26 (Tahoe) and later, use System Settings → Menu Bar, which provides this natively.*
+- **Show icon in menu bar** — hide the menu-bar icon while ClipMan keeps running (still reachable via its keyboard shortcut, if one is bound; if you have cleared that too, re-open ClipMan from Applications to bring the icon back). Your choice persists across launches, including login auto-start. *Shown only on macOS 14–15 — on macOS 26 (Tahoe) and later, use System Settings → Menu Bar, which provides this natively.*
 - **Menu bar icon pill** — optional grey background for stronger contrast on busy or wallpaper-tinted menu bars (off by default)
 - **Launch at Login** — start ClipMan automatically when you log in
 
