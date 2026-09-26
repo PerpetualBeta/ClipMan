@@ -33,9 +33,15 @@ struct ClipboardItemPreview: View {
                 } label: {
                     Label("Paste", systemImage: "doc.on.clipboard")
                 }
-                // No tint: the system draws this in the user's accent colour. A forced
-                // brand blue lost its label in dark mode on macOS 27.
-                .buttonStyle(.borderedProminent)
+                // Paste is the default action (Return), shown by an accent-coloured
+                // outline over a plain system button. Not .borderedProminent: on
+                // macOS 27 its label vanished in this panel, with or without a tint.
+                .buttonStyle(.bordered)
+                .overlay {
+                    ButtonBorderShape.roundedRectangle
+                        .strokeBorder(Color.accentColor, lineWidth: 1.5)
+                        .allowsHitTesting(false)
+                }
 
                 Button {
                     onPasteMatchStyle()
@@ -44,6 +50,9 @@ struct ClipboardItemPreview: View {
                 }
                 .buttonStyle(.bordered)
             }
+            // Both buttons share the shape the outline is drawn in, so the outline
+            // sits exactly on Paste's edge instead of approximating its corners.
+            .buttonBorderShape(.roundedRectangle)
         }
         .padding()
     }
