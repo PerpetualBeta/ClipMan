@@ -33,8 +33,9 @@ struct ClipboardItemPreview: View {
                 } label: {
                     Label("Paste", systemImage: "doc.on.clipboard")
                 }
+                // No tint: the system draws this in the user's accent colour. A forced
+                // brand blue lost its label in dark mode on macOS 27.
                 .buttonStyle(.borderedProminent)
-                .tint(Color(red: 0, green: 64/255, blue: 128/255))
 
                 Button {
                     onPasteMatchStyle()
